@@ -22,6 +22,12 @@ namespace System.Net.Quic.Tests
         protected override QuicImplementationProvider Provider => QuicImplementationProviders.MsQuic;
     }
 
+    [ConditionalClass(typeof(QuicTestBase<ManagedProviderFactory>), nameof(QuicTestBase<ManagedProviderFactory>.IsSupported))]
+    public sealed class ManagedQuicStreamConformanceTests : QuicStreamConformanceTests
+    {
+        protected override QuicImplementationProvider Provider => QuicImplementationProviders.Managed;
+    }
+
     public abstract class QuicStreamConformanceTests : ConnectedStreamConformanceTests
     {
         // TODO: These are all hanging, likely due to Stream close behavior.
@@ -45,10 +51,13 @@ namespace System.Net.Quic.Tests
             QuicImplementationProvider provider = Provider;
             var protocol = new SslApplicationProtocol("quictest");
 
-            var listener = new QuicListener(
-                provider,
-                new IPEndPoint(IPAddress.Loopback, 0),
-                new SslServerAuthenticationOptions { ApplicationProtocols = new List<SslApplicationProtocol> { protocol } });
+            QuicListener listener = new QuicListener(provider, new QuicListenerOptions()
+            {
+                ListenEndPoint = new IPEndPoint(IPAddress.Loopback, 0),
+                ServerAuthenticationOptions = new SslServerAuthenticationOptions { ApplicationProtocols = new List<SslApplicationProtocol> { protocol } },
+                CertificateFilePath = "Certs/cert.crt",
+                PrivateKeyFilePath = "Certs/cert.key"
+            });
             listener.Start();
 
             QuicConnection connection1 = null, connection2 = null;
